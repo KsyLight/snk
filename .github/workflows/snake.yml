@@ -1,0 +1,36 @@
+name: Auto-update GitHub Snake
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-snake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Bun and Install
+        uses: oven-sh/setup-bun@v1
+      - run: bun install --frozen-lockfile
+
+      - name: Generate SV-G
+        # либо официальный action, либо локальный
+        uses: KsyLight/snk-action@v3
+        with:
+          output: svg-only/dist/github-contribution-grid-snake-dark.svg
+          palette: github-dark
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add svg-only/dist/github-contribution-grid-snake-dark.svg
+          git commit -m "ci: update contribution snake" || echo "No changes"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
