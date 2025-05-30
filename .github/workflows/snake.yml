@@ -1,21 +1,22 @@
 name: Auto-update GitHub Snake
 
 on:
-  # запуск при пуше в основную ветку
+  # запуск при пуше в основную ветку, но изменения только внутри dist-папки не триггерят повторно
   push:
     branches: [main]
+    paths-ignore:
+      - 'svg-only/dist/**'
 
   # ежедневный запуск в 00:00 UTC
   schedule:
     - cron: '0 0 * * *'
 
-  # кнопка «Run workflow» в интерфейсе Actions
+  # ручной запуск кнопкой «Run workflow»
   workflow_dispatch:
 
 jobs:
   generate-snake:
     runs-on: ubuntu-latest
-
     steps:
       # 1 — клонируем репозиторий
       - uses: actions/checkout@v3
@@ -29,7 +30,7 @@ jobs:
             svg-only/dist/github-contribution-grid-snake.svg
             svg-only/dist/github-contribution-grid-snake-dark.svg?palette=github-dark
 
-      # 3 — коммитим изменения (только если файлы реально обновились)
+      # 3 — коммитим изменения, только если файлы реально изменились
       - name: Commit & push if changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,7 +38,6 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # добавляем новые SVG
           git add svg-only/dist/*.svg
 
           # коммитим, только если есть изменения
