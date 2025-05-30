@@ -1,38 +1,49 @@
 name: Auto-update GitHub Snake
 
 on:
+  # запуск при пуше в основную ветку
   push:
     branches: [main]
+
+  # ежедневный запуск в 00:00 UTC
   schedule:
     - cron: '0 0 * * *'
+
+  # кнопка «Run workflow» в интерфейсе Actions
   workflow_dispatch:
 
 jobs:
-  update-snake:
+  generate-snake:
     runs-on: ubuntu-latest
+
     steps:
+      # 1 — клонируем репозиторий
       - uses: actions/checkout@v3
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - run: bun install --frozen-lockfile
-
-      - name: Generate SVG
-        # либо официальная:
-        uses: platane/snk-action@v3
-        # либо твоя локальная копия:
-        # uses: ./svg-only
+      # 2 — генерируем SVG-файлы («светлый» и «тёмный» варианты)
+      - name: Generate contribution snake
+        uses: Platane/snk@v3
         with:
-          output: svg-only/dist/github-contribution-grid-snake-dark.svg
-          palette: github-dark
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            svg-only/dist/github-contribution-grid-snake.svg
+            svg-only/dist/github-contribution-grid-snake-dark.svg?palette=github-dark
 
-      - name: Commit & Push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add svg-only/dist/github-contribution-grid-snake-dark.svg
-          git commit -m "ci: update contribution snake" || echo "No changes"
-          git push
+      # 3 — коммитим изменения (только если файлы реально обновились)
+      - name: Commit & push if changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # добавляем новые SVG
+          git add svg-only/dist/*.svg
+
+          # коммитим, только если есть изменения
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "ci: update contribution snake"
+            git push
+          fi
